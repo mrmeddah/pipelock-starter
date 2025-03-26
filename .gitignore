@@ -21,4 +21,6 @@
 **/.DS_Store  
 **/Thumbs.db  
 
-
+**/.clj-kondo
+**/.lsp/
+**/.editorconfig
