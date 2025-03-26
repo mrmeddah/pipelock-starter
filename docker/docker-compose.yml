@@ -1,12 +1,41 @@
 version: '3.8'
+
 services:
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: metabase
+      POSTGRES_PASSWORD: metabase  
+      POSTGRES_DB: metabase
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U metabase"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
   metabase:
     build: .
     ports:
       - "3000:3000"
     environment:
-      MB_DB_FILE: /metabase-data/metabase.db
+      MB_DB_TYPE: postgres
+      MB_DB_HOST: postgres  
+      MB_DB_PORT: 5432
+      MB_DB_DBNAME: metabase
+      MB_DB_USER: metabase
+      MB_DB_PASS: metabase  
     volumes:
       - metabase-data:/metabase-data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
 volumes:
+  postgres-data:
   metabase-data:
