@@ -1,0 +1,12 @@
+{
+  "BudgetLimit": {
+    "Amount": "5",
+    "Unit": "USD"
+  },
+  "BudgetName": "metabase-dev-guardrail",
+  "BudgetType": "COST",
+  "CostFilters": {
+    "Service": ["Amazon RDS", "Amazon ECS"]
+  },
+  "TimeUnit": "MONTHLY"
+}
