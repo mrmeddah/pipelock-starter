@@ -22,5 +22,8 @@
 **/Thumbs.db  
 
 **/.clj-kondo
-**/.lsp/
-**/.editorconfig
+.lsp/
+.editorconfig
+
+configs/metabase.env
+.clj-kondo
