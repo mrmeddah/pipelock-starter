@@ -7,20 +7,21 @@ Fast, secure business intelligence for small businesses.
 
 
 ## What It Does
-- **Real-Time Dashboards**: Metabase on AWS ECS Fargate—see sales, customers, or analytics instantly.
+- **Real-Time Dashboards**: Metabase on AWS ECS Fargate; see sales, customers, or analytics instantly.
 - **Secure & Scalable**: Private subnets, encrypted RDS, locked-down IAM your data’s safe, grows with you.
-- **Affordable**: Approx ~$20/month to run—beats $15K+ tools like Tableau.
+- **Affordable**: Approx ~$20/month to run, beats $15K+ tools like Tableau.
 
 **Live Demo**: [Coming Soon - https://metabase.pipelock.dev ]  
-**Built For**: E-commerce, agencies, SaaS startups, health-tech (basically any business that uses with Data to make decisions).
+**Built For**: E-commerce, agencies, SaaS startups, health-tech (basically any business that uses data to make decisions).
 
 ## Tech Stack
 - **AWS**: ECS Fargate (app), RDS PostgreSQL (DB), ALB (access), S3 (storage).
 - **Terraform**: Modular infra; VPC, ECS, RDS, IAM, and ALB in reusable folders.
 - **Docker**: Lightweight Metabase container. (Basic Dockerfile with healthcheck)
+- **Github Actions**: CI/CD via GitHub Actions (Soon).
 
 ## How It Works
-1. **Deploy**: `terraform apply` in `infra/dev/`—live in hours.
+1. **Deploy**: `terraform apply` in `infra/dev/`; then it is live.
 2. **Connect**: Plug in your data (Shopify, Google Analytics, etc.).
 3. **Run**: Dashboards up, secure, no maintenance.
 
@@ -35,6 +36,10 @@ aws configure
 terraform init
 terraform apply
 ```
+## Contact: 
+
+**X**: DM me on X [@medsupernova]
+**E-mail**: Email me at [mrmeddah@yahoo.com].
 
 # This is a comprehensive README file dedicated to the Terraform Repo
 ## Structure of Terraform Repo via the tree command:
