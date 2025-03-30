@@ -3,6 +3,9 @@
 Fast, secure business intelligence for small businesses.
 
 
+![Getting Started](/docs/images/image.png)
+
+
 ## What It Does
 - **Real-Time Dashboards**: Metabase on AWS ECS Fargate—see sales, customers, or analytics instantly.
 - **Secure & Scalable**: Private subnets, encrypted RDS, locked-down IAM your data’s safe, grows with you.
