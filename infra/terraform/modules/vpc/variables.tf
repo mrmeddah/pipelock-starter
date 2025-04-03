@@ -44,3 +44,9 @@ variable "environment" {
   type        = string
   default     = "dev"
 }
+
+variable "create_s3_endpoint" {
+  description = "Whether to create an S3 VPC endpoint"
+  type        = bool
+  default     = true 
+}

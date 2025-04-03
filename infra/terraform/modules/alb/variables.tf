@@ -17,3 +17,8 @@ variable "domain_name" {
   description = "Domain name for HTTPS certificate pipelock.dev"
   type        = string
 }
+
+variable "route53_zone_id" {
+  description = "Route53 Hosted Zone ID for DNS validation"
+  type        = string
+}

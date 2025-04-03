@@ -28,7 +28,7 @@ resource "aws_lb_listener" "https" {
   load_balancer_arn = aws_lb.metabase.arn
   port              = 443
   protocol          = "HTTPS"
-  certificate_arn   = aws_acm_certificate.metabase.arn
+  certificate_arn = aws_acm_certificate_validation.metabase.certificate_arn
 
   default_action {
     type             = "forward"
@@ -53,19 +53,12 @@ resource "aws_lb_listener" "http_redirect" {
 
 resource "aws_security_group" "alb" {
   name        = "metabase-alb-${var.environment}"
-  description = "Allow HTTPS inbound traffic"
+  description = "Allow HTTPS traffic to ALB"
   vpc_id      = var.vpc_id
 
   ingress {
     from_port   = 443
     to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    from_port   = 80
-    to_port     = 80
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -87,7 +80,30 @@ resource "aws_acm_certificate" "metabase" {
   }
 }
 
-output "alb_zone_id" {
-  description = "ALB zone ID for Route53 alias"
-  value       = aws_lb.metabase.zone_id
+resource "aws_route53_record" "cert_validation" {
+  allow_overwrite = true
+  name            = tolist(aws_acm_certificate.metabase.domain_validation_options)[0].resource_record_name
+  records         = [tolist(aws_acm_certificate.metabase.domain_validation_options)[0].resource_record_value]
+  type            = tolist(aws_acm_certificate.metabase.domain_validation_options)[0].resource_record_type
+  zone_id         = var.route53_zone_id
+  ttl             = 60
+}
+
+resource "aws_lb" "this" {
+  name               = "metabase-${var.environment}"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.alb.id]
+  subnets            = var.public_subnet_ids
+
+  enable_deletion_protection = false
+
+  tags = {
+    Environment = var.environment
+  }
+}
+
+resource "aws_acm_certificate_validation" "metabase" {
+  certificate_arn         = aws_acm_certificate.metabase.arn
+  validation_record_fqdns = [aws_route53_record.cert_validation.fqdn]
 }

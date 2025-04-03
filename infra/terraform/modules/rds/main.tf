@@ -1,7 +1,7 @@
 resource "aws_db_instance" "metabase" {
   identifier             = "metabase-${var.environment}"
   engine                 = "postgres"
-  engine_version         = "15.4"  
+  engine_version         = "12.20"  
   instance_class         = var.instance_class
   allocated_storage      = 20
   storage_type           = "gp3"
@@ -12,7 +12,7 @@ resource "aws_db_instance" "metabase" {
   vpc_security_group_ids = [aws_security_group.rds.id]
   parameter_group_name   = aws_db_parameter_group.metabase.name
   skip_final_snapshot    = var.environment == "dev" ? true : false
-  multi_az               = var.environment == "prod" ? true : false
+  multi_az               = var.environment == "prod" ? true : false #Function checks if multi-az is true or false | ya3ni enabled wela la
   backup_retention_period = 7
   publicly_accessible    = false
   deletion_protection    = var.environment == "prod" ? true : false
@@ -28,14 +28,20 @@ resource "aws_db_subnet_group" "metabase" {
 }
 
 resource "aws_db_parameter_group" "metabase" {
-  name   = "metabase-postgres15"
-  family = "postgres15"
+  name   = "metabase-postgres12"
+  family = "postgres12" 
 
   parameter {
     name  = "rds.force_ssl"
     value = "1"  
   }
+
+  parameter {
+    name  = "log_statement"
+    value = "all" 
+  }
 }
+
 
 resource "aws_security_group" "rds" {
   name        = "metabase-rds-${var.environment}"

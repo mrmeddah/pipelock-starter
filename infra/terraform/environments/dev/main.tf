@@ -16,7 +16,7 @@ module "metabase_iam" {
   enable_s3_exports = false                      
 }
 
-# RDS (Single-AZ to save costs, but easily upgradable) ghire l testing
+# RDS (Single-AZ to save costs, but easily upgradable f prod) ghire l testing
 module "metabase_rds" {
   source          = "../../modules/rds"
   environment     = "dev"
@@ -29,11 +29,12 @@ module "metabase_rds" {
 }
 
 module "metabase_alb" {
-  source          = "../../modules/alb"
-  environment     = "dev"
-  vpc_id          = module.metabase_vpc.vpc_id
+  source           = "../../modules/alb"
+  environment      = "dev"
+  vpc_id           = module.metabase_vpc.vpc_id
   public_subnet_ids = module.metabase_vpc.public_subnet_ids
-  domain_name     = "metabase.pipelock.dev"    
+  domain_name      = "metabase.pipelock.dev"
+  route53_zone_id  = data.aws_route53_zone.primary.zone_id  
 }
 
 # ECS (Fargate with Spot for cost savings)
@@ -96,13 +97,40 @@ data "aws_route53_zone" "primary" {
   private_zone = false #7ite deja created a hosted zone, o f output it shows that it's privatezone is false 
 }
 
+resource "aws_acm_certificate" "metabase" {
+  domain_name       = "metabase.pipelock.dev"
+  validation_method = "DNS"
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_route53_record" "cert_validation" {
+  zone_id = data.aws_route53_zone.primary.zone_id
+  name    = tolist(aws_acm_certificate.metabase.domain_validation_options)[0].resource_record_name
+  type    = tolist(aws_acm_certificate.metabase.domain_validation_options)[0].resource_record_type
+  records = [tolist(aws_acm_certificate.metabase.domain_validation_options)[0].resource_record_value]
+  ttl     = 60
+}
+
+resource "aws_acm_certificate_validation" "metabase" {
+  certificate_arn         = aws_acm_certificate.metabase.arn
+  validation_record_fqdns = [aws_route53_record.cert_validation.fqdn]
+}
+
 resource "aws_route53_record" "metabase" {
-  zone_id = data.aws_route53_zone.primary.zone_id  #Hna ghnkhdem b zone_id deja kayna, so I added data, sinon ghydir lia new hosted zone with new data
+  zone_id = data.aws_route53_zone.primary.zone_id
   name    = "metabase.pipelock.dev"
   type    = "A"
+
   alias {
     name                   = module.metabase_alb.alb_dns_name
     zone_id                = module.metabase_alb.alb_zone_id
     evaluate_target_health = true
   }
+
+  depends_on = [
+    module.metabase_alb,
+    aws_acm_certificate_validation.metabase
+  ]
 }

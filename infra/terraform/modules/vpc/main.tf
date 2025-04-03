@@ -12,9 +12,9 @@ resource "aws_vpc" "main" {
 resource "aws_subnet" "public" {
   count                   = 2
   vpc_id                  = aws_vpc.main.id
-  cidr_block              = "10.0.${count.index + 10}.0/24"  # 10.0.10.0/24, 10.0.11.0/24
+  cidr_block              = "10.0.${count.index + 10}.0/24"                    # 10.0.10.0/24, 10.0.11.0/24
   availability_zone       = element(["us-east-1a", "us-east-1b"], count.index) #Hena dert 2 ela wed High Availability
-  map_public_ip_on_launch = true  
+  map_public_ip_on_launch = true
   tags = {
     Name = "metabase-public-${count.index}"
   }
@@ -24,7 +24,7 @@ resource "aws_subnet" "public" {
 resource "aws_subnet" "private" {
   count             = 2
   vpc_id            = aws_vpc.main.id
-  cidr_block        = "10.0.${count.index}.0/24"  # 10.0.0.0/24, 10.0.1.0/24
+  cidr_block        = "10.0.${count.index}.0/24" # 10.0.0.0/24, 10.0.1.0/24
   availability_zone = element(["us-east-1a", "us-east-1b"], count.index)
   tags = {
     Name = "metabase-private-${count.index}"
@@ -90,7 +90,7 @@ resource "aws_route_table_association" "public" {
 resource "aws_route_table_association" "private" {
   count          = length(var.private_subnet_cidrs)
   subnet_id      = aws_subnet.private[count.index].id
-  route_table_id = aws_route_table.private[count.index].id 
+  route_table_id = aws_route_table.private[count.index].id
 }
 
 
@@ -212,7 +212,15 @@ resource "aws_vpc_endpoint" "s3" {
   vpc_id            = aws_vpc.main.id
   service_name      = "com.amazonaws.${var.aws_region}.s3"
   vpc_endpoint_type = "Gateway"
-  route_table_ids   = aws_route_table.private[*].id  # Changed to splat expression
+  
+  route_table_ids = [
+    for rt in aws_route_table.private : 
+    rt.id if !contains([for r in data.aws_route_table.existing.routes : r.destination_prefix_list_id], "pl-63a5400a")
+  ]
+}
+
+data "aws_route_table" "existing" {
+  route_table_id = "rtb-02500816bd888a4ef"
 }
 
 resource "aws_vpc_endpoint" "secretsmanager" {

@@ -98,7 +98,7 @@ resource "aws_iam_role" "ci_cd" {
       Condition = {
         StringEquals = {
           "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com",
-          "token.actions.githubusercontent.com:sub" = "repo:your-github-org/your-repo:ref:refs/heads/main"
+          "token.actions.githubusercontent.com:sub" = "repo:https://github.com/mrmeddah/pipelock-starter:ref:refs/heads/main"
         }
       }
     }]
