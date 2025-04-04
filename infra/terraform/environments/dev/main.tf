@@ -33,12 +33,15 @@ module "metabase_alb" {
   environment      = "dev"
   vpc_id           = module.metabase_vpc.vpc_id
   public_subnet_ids = module.metabase_vpc.public_subnet_ids
+  private_subnets_cidr_blocks = module.vpc.private_subnets_cidr_blocks
   domain_name      = "metabase.pipelock.dev"
   route53_zone_id  = data.aws_route53_zone.primary.zone_id  
 }
 
 # ECS (Fargate with Spot for cost savings)
 module "metabase_ecs" {
+    ecs_security_group_id = module.ecs.ecs_security_group_id 
+    rds_endpoint         = module.rds.rds_endpoint 
   source                      = "../../modules/ecs"
   environment                 = "dev"
   vpc_id                      = module.metabase_vpc.vpc_id
@@ -113,10 +116,10 @@ resource "aws_route53_record" "cert_validation" {
   ttl     = 60
 }
 
-resource "aws_acm_certificate_validation" "metabase" {
-  certificate_arn         = aws_acm_certificate.metabase.arn
-  validation_record_fqdns = [aws_route53_record.cert_validation.fqdn]
-}
+resource "aws_acm_certificate_validation" "metabase" {  
+  certificate_arn         = aws_acm_certificate.metabase.arn  
+  validation_record_fqdns = [for record in aws_route53_record.metabase_validation : record.fqdn]  
+} 
 
 resource "aws_route53_record" "metabase" {
   zone_id = data.aws_route53_zone.primary.zone_id

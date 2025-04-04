@@ -72,3 +72,13 @@ variable "capacity_provider_strategy" {
     weight           = 1
   }]
 }
+
+variable "rds_endpoint" {  
+  description = "RDS endpoint for Metabase connection"  
+  type        = string  
+}  
+
+variable "ecs_security_group_id" {  
+  description = "ECS Security Group ID for RDS access"  
+  type        = string  
+}  

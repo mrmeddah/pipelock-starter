@@ -22,3 +22,8 @@ variable "route53_zone_id" {
   description = "Route53 Hosted Zone ID for DNS validation"
   type        = string
 }
+
+variable "private_subnets_cidr_blocks" {
+  description = "CIDR blocks of private subnets for ECS security group egress"
+  type        = list(string)
+}

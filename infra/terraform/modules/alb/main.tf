@@ -28,7 +28,8 @@ resource "aws_lb_listener" "https" {
   load_balancer_arn = aws_lb.metabase.arn
   port              = 443
   protocol          = "HTTPS"
-  certificate_arn = aws_acm_certificate_validation.metabase.certificate_arn
+  certificate_arn   = aws_acm_certificate.metabase.arn
+  depends_on = [aws_acm_certificate_validation.metabase]
 
   default_action {
     type             = "forward"
@@ -57,18 +58,28 @@ resource "aws_security_group" "alb" {
   vpc_id      = var.vpc_id
 
   ingress {
+    description = "HTTPS from anywhere"
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
+  ingress {
+    description = "HTTP redirect from anywhere"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+    egress {
+    description = "Allow outbound only to ECS"
+    from_port   = 3000
+    to_port     = 3000
+    protocol    = "tcp"
+    cidr_blocks = var.private_subnets_cidr_blocks
+    }
 }
 
 resource "aws_acm_certificate" "metabase" {
@@ -81,29 +92,24 @@ resource "aws_acm_certificate" "metabase" {
 }
 
 resource "aws_route53_record" "cert_validation" {
+  for_each = {
+    for dvo in aws_acm_certificate.metabase.domain_validation_options : dvo.domain_name => {
+      name   = dvo.resource_record_name
+      record = dvo.resource_record_value
+      type   = dvo.resource_record_type
+    }
+  }
+
   allow_overwrite = true
-  name            = tolist(aws_acm_certificate.metabase.domain_validation_options)[0].resource_record_name
-  records         = [tolist(aws_acm_certificate.metabase.domain_validation_options)[0].resource_record_value]
-  type            = tolist(aws_acm_certificate.metabase.domain_validation_options)[0].resource_record_type
+  name            = each.value.name
+  records         = [each.value.record]
+  type            = each.value.type
   zone_id         = var.route53_zone_id
   ttl             = 60
 }
 
-resource "aws_lb" "this" {
-  name               = "metabase-${var.environment}"
-  internal           = false
-  load_balancer_type = "application"
-  security_groups    = [aws_security_group.alb.id]
-  subnets            = var.public_subnet_ids
-
-  enable_deletion_protection = false
-
-  tags = {
-    Environment = var.environment
-  }
-}
 
 resource "aws_acm_certificate_validation" "metabase" {
   certificate_arn         = aws_acm_certificate.metabase.arn
-  validation_record_fqdns = [aws_route53_record.cert_validation.fqdn]
+  validation_record_fqdns = [for record in aws_route53_record.cert_validation : record.fqdn]
 }
