@@ -212,15 +212,7 @@ resource "aws_vpc_endpoint" "s3" {
   vpc_id            = aws_vpc.main.id
   service_name      = "com.amazonaws.${var.aws_region}.s3"
   vpc_endpoint_type = "Gateway"
-  
-  route_table_ids = [
-    for rt in aws_route_table.private : 
-    rt.id if !contains([for r in data.aws_route_table.existing.routes : r.destination_prefix_list_id], "pl-63a5400a")
-  ]
-}
-
-data "aws_route_table" "existing" {
-  route_table_id = "rtb-02500816bd888a4ef"
+  route_table_ids = aws_route_table.private[*].id
 }
 
 resource "aws_vpc_endpoint" "secretsmanager" {

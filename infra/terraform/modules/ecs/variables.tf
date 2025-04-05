@@ -78,7 +78,8 @@ variable "rds_endpoint" {
   type        = string  
 }  
 
-variable "ecs_security_group_id" {  
-  description = "ECS Security Group ID for RDS access"  
-  type        = string  
-}  
+
+variable "security_groups" {
+  description = "Security group IDs for ECS tasks"
+  type        = list(string)
+}

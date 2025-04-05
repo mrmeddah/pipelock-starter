@@ -126,3 +126,4 @@ data "aws_caller_identity" "current" {}
 
 #Define clusters aprés L CI/CD
 #Mtnsach Secrets Manager w Variables file. (done)
+

@@ -28,15 +28,14 @@ resource "aws_lb_listener" "https" {
   load_balancer_arn = aws_lb.metabase.arn
   port              = 443
   protocol          = "HTTPS"
-  certificate_arn   = aws_acm_certificate.metabase.arn
-  depends_on = [aws_acm_certificate_validation.metabase]
+  ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"  
+  certificate_arn   = var.certificate_arn 
 
   default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.metabase.arn
   }
 }
-
 resource "aws_lb_listener" "http_redirect" {
   load_balancer_arn = aws_lb.metabase.arn
   port              = 80

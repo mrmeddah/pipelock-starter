@@ -45,7 +45,6 @@ resource "aws_ecs_task_definition" "metabase" {
 }
 
 resource "aws_ecs_service" "metabase" {
-    depends_on = [aws_lb_listener.metabase]
   name            = "metabase"
   cluster         = aws_ecs_cluster.metabase.id
   task_definition = aws_ecs_task_definition.metabase.arn
@@ -54,7 +53,7 @@ resource "aws_ecs_service" "metabase" {
 
   network_configuration {
     subnets          = var.subnet_ids
-    security_groups  = [aws_security_group.ecs.id]
+    security_groups  = var.security_groups
     assign_public_ip = false  # Private subnets only
   }
 

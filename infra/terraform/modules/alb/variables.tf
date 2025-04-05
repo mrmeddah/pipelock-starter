@@ -27,3 +27,8 @@ variable "private_subnets_cidr_blocks" {
   description = "CIDR blocks of private subnets for ECS security group egress"
   type        = list(string)
 }
+
+variable "certificate_arn" {
+  description = "ARN of existing ACM certificate"
+  type        = string
+}

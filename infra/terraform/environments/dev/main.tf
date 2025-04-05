@@ -1,7 +1,7 @@
 # Core VPC with NAT Gateway (required)
 module "metabase_vpc" {
   source          = "../../modules/vpc"
-  environment     = "dev"
+  environment = var.environment
   vpc_cidr        = "10.0.0.0/16"                   
   public_subnet_cidrs = ["10.0.1.0/24", "10.0.2.0/24"]  
   private_subnet_cidrs = ["10.0.3.0/24", "10.0.4.0/24"]
@@ -20,12 +20,27 @@ module "metabase_iam" {
 module "metabase_rds" {
   source          = "../../modules/rds"
   environment     = "dev"
-  vpc_id          = module.metabase_vpc.vpc_id
-  subnet_ids      = module.metabase_vpc.private_subnet_ids
-  ecs_security_group_id = module.metabase_ecs.ecs_security_group_id
+vpc_id      = module.metabase_vpc.vpc_id
+subnet_ids  = module.metabase_vpc.private_subnet_ids
+  ecs_security_group_id = aws_security_group.ecs.id
   instance_class  = "db.t4g.micro"                 
   multi_az        = false                         
   skip_final_snapshot = true                      
+}
+
+# Deja endi certifs ISSUED, O mbghitch L hardcoding dyal ARN
+
+data "aws_acm_certificate" "metabase" {
+  domain      = "metabase.pipelock.dev"
+  statuses    = ["ISSUED"]
+  most_recent = true  
+}
+
+data "aws_acm_certificate" "wildcard" {
+  domain      = "pipelock.dev"
+  statuses    = ["ISSUED"]
+  most_recent = true
+  types       = ["AMAZON_ISSUED"] 
 }
 
 module "metabase_alb" {
@@ -33,19 +48,40 @@ module "metabase_alb" {
   environment      = "dev"
   vpc_id           = module.metabase_vpc.vpc_id
   public_subnet_ids = module.metabase_vpc.public_subnet_ids
-  private_subnets_cidr_blocks = module.vpc.private_subnets_cidr_blocks
+  private_subnets_cidr_blocks = module.metabase_vpc.private_subnets_cidr_blocks
   domain_name      = "metabase.pipelock.dev"
-  route53_zone_id  = data.aws_route53_zone.primary.zone_id  
+  route53_zone_id  = data.aws_route53_zone.primary.zone_id 
+  certificate_arn = data.aws_acm_certificate.metabase.arn
 }
 
 # ECS (Fargate with Spot for cost savings)
+resource "aws_security_group" "ecs" {
+  name        = "metabase-ecs-${var.environment}"
+  description = "Allow inbound from ALB only"
+  vpc_id      = module.metabase_vpc.vpc_id
+
+  ingress {
+    from_port       = 3000
+    to_port         = 3000
+    protocol        = "tcp"
+    security_groups = [module.metabase_alb.alb_security_group_id]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
 module "metabase_ecs" {
-    ecs_security_group_id = module.ecs.ecs_security_group_id 
-    rds_endpoint         = module.rds.rds_endpoint 
   source                      = "../../modules/ecs"
   environment                 = "dev"
-  vpc_id                      = module.metabase_vpc.vpc_id
+    rds_endpoint         = module.metabase_rds.rds_endpoint
+  vpc_id      = module.metabase_vpc.vpc_id
   subnet_ids                  = module.metabase_vpc.private_subnet_ids
+security_groups    = [aws_security_group.ecs.id]
   ecs_task_execution_role_arn = module.metabase_iam.ecs_task_execution_role_arn
   ecs_task_role_arn           = module.metabase_iam.ecs_task_role_arn
   db_host                     = module.metabase_rds.rds_endpoint
@@ -54,7 +90,8 @@ module "metabase_ecs" {
   alb_security_group_id       = module.metabase_alb.alb_security_group_id
   aws_region                  = "us-east-1"
   metabase_image              = "metabase/metabase:latest"
-  desired_count               = 1                   
+  desired_count               = 1  
+  depends_on = [module.metabase_rds]                 
   capacity_provider_strategy = [                   
     {
       capacity_provider = "FARGATE_SPOT",
@@ -64,13 +101,6 @@ module "metabase_ecs" {
 }
 
 # VPC Endpoints (Reduce NAT traffic costs)
-resource "aws_vpc_endpoint" "s3" {
-  vpc_id            = module.metabase_vpc.vpc_id
-  service_name      = "com.amazonaws.us-east-1.s3"
-  vpc_endpoint_type = "Gateway"                   # Free
-  route_table_ids   = module.metabase_vpc.private_route_table_ids
-}
-
 resource "aws_vpc_endpoint" "ecr" {
   vpc_id              = module.metabase_vpc.vpc_id
   service_name        = "com.amazonaws.us-east-1.ecr.dkr"
@@ -100,27 +130,6 @@ data "aws_route53_zone" "primary" {
   private_zone = false #7ite deja created a hosted zone, o f output it shows that it's privatezone is false 
 }
 
-resource "aws_acm_certificate" "metabase" {
-  domain_name       = "metabase.pipelock.dev"
-  validation_method = "DNS"
-  lifecycle {
-    create_before_destroy = true
-  }
-}
-
-resource "aws_route53_record" "cert_validation" {
-  zone_id = data.aws_route53_zone.primary.zone_id
-  name    = tolist(aws_acm_certificate.metabase.domain_validation_options)[0].resource_record_name
-  type    = tolist(aws_acm_certificate.metabase.domain_validation_options)[0].resource_record_type
-  records = [tolist(aws_acm_certificate.metabase.domain_validation_options)[0].resource_record_value]
-  ttl     = 60
-}
-
-resource "aws_acm_certificate_validation" "metabase" {  
-  certificate_arn         = aws_acm_certificate.metabase.arn  
-  validation_record_fqdns = [for record in aws_route53_record.metabase_validation : record.fqdn]  
-} 
-
 resource "aws_route53_record" "metabase" {
   zone_id = data.aws_route53_zone.primary.zone_id
   name    = "metabase.pipelock.dev"
@@ -133,7 +142,9 @@ resource "aws_route53_record" "metabase" {
   }
 
   depends_on = [
-    module.metabase_alb,
-    aws_acm_certificate_validation.metabase
+    module.metabase_alb
   ]
 }
+
+# Validation (L3a9a katmchi)
+
