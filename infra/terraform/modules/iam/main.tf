@@ -59,7 +59,7 @@ resource "aws_iam_role" "ecs_task" {
   })
 }
 
-# Minimal S3 permissions (L'export dyal Dashboard l S3)
+# Minimal S3 permissions (L'export l S3)
 resource "aws_iam_policy" "metabase_s3" {
   name        = "metabase-s3-export-access"
   description = "Allow Metabase to write to S3 for exports"

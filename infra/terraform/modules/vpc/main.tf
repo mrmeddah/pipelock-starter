@@ -182,14 +182,14 @@ resource "aws_network_acl" "private" {
   subnet_ids = aws_subnet.private[*].id
 
   # Allow all internal VPC traffic
-  ingress {
-    rule_no    = 100
-    protocol   = "-1"
-    from_port  = 0
-    to_port    = 0
-    cidr_block = var.vpc_cidr
-    action     = "allow"
-  }
+ingress {
+  rule_no    = 110
+  protocol   = "tcp"
+  from_port  = 443
+  to_port    = 443
+  cidr_block = "0.0.0.0/0"
+  action     = "allow"
+}
 
   # Allow HTTPS outbound to internet (for ECS tasks)
   egress {

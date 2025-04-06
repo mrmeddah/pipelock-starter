@@ -9,9 +9,9 @@ Fast, secure business intelligence for small businesses.
 ## What It Does
 - **Real-Time Dashboards**: Metabase on AWS ECS Fargate; see sales, customers, or analytics instantly.
 - **Secure & Scalable**: Private subnets, encrypted RDS, locked-down IAM your data’s safe, grows with you.
-- **Affordable**: Approx ~$20/month to run, beats $15K+ tools like Tableau.
+- **Affordable**: Approx ~50-70$/month to run, beats 15$K+ tools like Tableau. Customizable depending on the needs, can reach '200$' per month cloud-costs, but in terms of users, it's unlimited unlike other paid tools
 
-**Live Demo**: [Coming Soon - https://metabase.pipelock.dev ]  
+**Live Demo**: ['Probably down' - https://metabase.pipelock.dev ]  
 **Built For**: E-commerce, agencies, SaaS startups, health-tech (basically any business that uses data to make decisions).
 
 ## Tech Stack
@@ -21,7 +21,7 @@ Fast, secure business intelligence for small businesses.
 - **Github Actions**: CI/CD via GitHub Actions (Soon).
 
 ## How It Works
-1. **Deploy**: `terraform apply` in `infra/dev/`; then it is live.
+1. **Deploy**: `terraform apply` in `infra/terraform/enviroments/dev/`; then it is live.
 2. **Connect**: Plug in your data (Shopify, Google Analytics, etc.).
 3. **Run**: Dashboards up, secure, no maintenance.
 
@@ -29,12 +29,14 @@ Fast, secure business intelligence for small businesses.
 ```bash
 # Clone repo
 git clone https://github.com/mrmeddah/pipelock-starter.git
-cd pipelock-starter/infra/dev/
+cd pipelock-starter/infra/terraform/enviroments/dev/
 
 # Configure AWS CLI & Terraform
-aws configure
+aws configure # To authenticate with your AWS credentials
 terraform init
-terraform apply
+terraform validate # (In case you made any changes and wanna check if they are are valid)
+terraform plan -out=tfplan # This will help you understand the dependencies and work around them
+terraform apply # This will create the resources defined and deploy metabase directly to your ECR
 ```
 
 ## Cost Saving Tips
@@ -43,7 +45,7 @@ terraform apply
 - Enable ECS Spot instances
 - NAT Gateway costs $0.045/hr (≈$32/month if running 24/7)
 - ALB costs $0.025/hr (≈$18/month)
-- **Always run `terraform destroy` after testing**
+- **Always run `terraform destroy` after testing "it will delete what's created"**
 
 ## Break-Glass Procedure
 To nuke all resources immediately:
@@ -59,10 +61,10 @@ terraform destroy -auto-approve
 
 ## Contact: 
 
-**X**: DM me on X [@medsupernova].
+**X**: DM me on X @medsupernova.
 
   
-**E-mail**: Email me at [mrmeddah@yahoo.com].
+**E-mail**: Email me at mrmeddah@yahoo.com 
 
 # This is a comprehensive README file dedicated to the Terraform Repo
 ## Structure of Terraform Repo via the tree command:
@@ -116,6 +118,16 @@ terraform destroy -auto-approve
 ## Explaining the Terraform Structure
 
 ### I organized these Terraform files as re-usable files. By adding variables to ensure the customization later and avoid hardcoding, separating each module in a dedicated folder to ensure encapsulation of the logical components, and to avoid a monolithic structure. Outputs are used to expose key attributes to each module.
+
+Key Highlights from the dev Plan
+
+VPC		CIDR 10.0.0.0/16 with AZ redundancy
+RDS		PostgreSQL 12.20 on t4g.micro (dev-optimized)
+ECS		Fargate Spot with 1vCPU/2GB RAM
+ALB		HTTPS redirect working with an existing ACM cert
+
+Security  Least-privilege IAM + locked-down security groups + WAF for SQLi and XSS (Cross Site Scripting) +         AWS Secrets Manager
+
 
 ## The Architectures
 
