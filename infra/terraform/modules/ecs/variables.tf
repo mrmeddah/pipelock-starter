@@ -83,3 +83,8 @@ variable "security_groups" {
   description = "Security group IDs for ECS tasks"
   type        = list(string)
 }
+
+variable "dockerhub_secret_arn" {
+  description = "ARN of the Docker Hub credentials secret"
+  type        = string
+}

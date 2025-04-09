@@ -11,10 +11,13 @@ module "metabase_vpc" {
 
 # IAM (Least privileges)
 module "metabase_iam" {
-  source       = "../../modules/iam"
-  github_repo  = "https://github.com/mrmeddah/pipelock-starter"             
-  enable_s3_exports = false                      
+  source            = "../../modules/iam"
+  github_repo       = "mrmeddah/pipelock-starter"
+  enable_s3_exports = false
+  dockerhub_username = var.dockerhub_username
+  dockerhub_password = var.dockerhub_password
 }
+
 
 # RDS (Single-AZ to save costs, but easily upgradable f prod) ghire l testing
 module "metabase_rds" {
@@ -75,6 +78,21 @@ resource "aws_security_group" "ecs" {
   }
 }
 
+/* resource "aws_ecr_repository" "metabase" {
+  name                 = "metabase"
+  image_tag_mutability = "MUTABLE"
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+
+  tags = {
+    Environment = "dev"
+  }
+}
+*/
+
+
 module "metabase_ecs" {
   source                      = "../../modules/ecs"
   environment                 = "dev"
@@ -89,7 +107,8 @@ security_groups    = [aws_security_group.ecs.id]
   alb_target_group_arn        = module.metabase_alb.target_group_arn
   alb_security_group_id       = module.metabase_alb.alb_security_group_id
   aws_region                  = "us-east-1"
-  metabase_image              = "docker.io/metabase/metabase:latest"
+  metabase_image              = "pipelock/metabase:latest"
+  dockerhub_secret_arn        = module.metabase_iam.dockerhub_secret_arn 
   desired_count               = 1  
   depends_on = [module.metabase_rds]                 
   capacity_provider_strategy = [                   

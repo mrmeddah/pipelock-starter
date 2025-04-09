@@ -12,36 +12,40 @@ resource "aws_ecs_task_definition" "metabase" {
   task_role_arn            = var.ecs_task_role_arn
 
   container_definitions = jsonencode([{
-    name  = "metabase"
-    image = var.metabase_image
-    portMappings = [{
-      containerPort = 3000
-      hostPort      = 3000
-    }]
-    environment = [
-      { name = "MB_DB_TYPE", value = "postgres" },
-      { name = "MB_DB_HOST", value = var.db_host },
-      { name = "MB_DB_PORT", value = "5432" }
-    ]
-    secrets = [
-      {
-        name      = "MB_DB_USER"
-        valueFrom = "${var.db_secret_arn}:username::"
-      },
-      {
-        name      = "MB_DB_PASS"
-        valueFrom = "${var.db_secret_arn}:password::"
-      }
-    ]
-    logConfiguration = {
-      logDriver = "awslogs",
-      options = {
-        "awslogs-group"         = "/ecs/metabase-${var.environment}",
-        "awslogs-region"        = var.aws_region,
-        "awslogs-stream-prefix" = "metabase"
-      }
+  name  = "metabase"
+  image = var.metabase_image
+  repositoryCredentials = {
+    credentialsParameter = var.dockerhub_secret_arn
+  }
+  portMappings = [{
+    containerPort = 3000
+    hostPort      = 3000
+  }]
+  environment = [
+    { name = "MB_DB_TYPE", value = "postgres" },
+    { name = "MB_DB_HOST", value = var.db_host },
+    { name = "MB_DB_PORT", value = "5432" }
+  ]
+  secrets = [
+    {
+      name      = "MB_DB_USER",
+      valueFrom = "arn:aws:secretsmanager:us-east-1:361769579987:secret:metabase-db-credentials-dev:username::"
+    },
+    {
+      name      = "MB_DB_PASS",
+      valueFrom = "arn:aws:secretsmanager:us-east-1:361769579987:secret:metabase-db-credentials-dev:password::"
     }
-  }])
+  ]
+  logConfiguration = {
+    logDriver = "awslogs",
+    options = {
+      "awslogs-group"         = "/ecs/metabase-${var.environment}",
+      "awslogs-region"        = var.aws_region,
+      "awslogs-stream-prefix" = "metabase"
+    }
+  }
+}])
+
 }
 
 resource "aws_ecs_service" "metabase" {
@@ -86,3 +90,4 @@ resource "aws_cloudwatch_log_group" "metabase" {
   name              = "/ecs/metabase-${var.environment}"
   retention_in_days = 30
 }
+

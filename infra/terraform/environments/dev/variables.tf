@@ -20,3 +20,14 @@ variable "github_repo" {
   type        = string
   default     = "https://github.com/mrmeddah/pipelock-starter" 
 }
+
+variable "dockerhub_username" {
+  description = "Docker Hub account username"
+  type        = string
+}
+
+variable "dockerhub_password" {
+  description = "Docker Hub account password"
+  type        = string
+  sensitive   = true
+}

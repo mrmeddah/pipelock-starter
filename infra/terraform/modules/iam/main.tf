@@ -27,14 +27,20 @@ resource "aws_iam_policy" "ecs_secrets_access" {
 
   policy = jsonencode({
     Version = "2012-10-17",
-    Statement = [{
-      Action   = [
-        "secretsmanager:GetSecretValue",
-        "secretsmanager:DescribeSecret"
-      ],
-      Effect   = "Allow",
-      Resource = aws_secretsmanager_secret.db_credentials.arn
-    }]
+    Statement = [
+      # For database secrets
+      {
+        Action   = ["secretsmanager:GetSecretValue"],
+        Effect   = "Allow",
+        Resource = ["arn:aws:secretsmanager:us-east-1:361769579987:secret:metabase-db-credentials-dev*"]
+      },
+      # For Docker Hub secrets
+      {
+        Action   = ["secretsmanager:GetSecretValue"],
+        Effect   = "Allow",
+        Resource = [aws_secretsmanager_secret.dockerhub.arn]
+      }
+    ]
   })
 }
 
@@ -83,6 +89,7 @@ resource "aws_iam_role_policy_attachment" "ecs_task_s3" {
   policy_arn = aws_iam_policy.metabase_s3.arn
 }
 
+
 # CI/CD GitHub role 
 
 resource "aws_iam_role" "ci_cd" {
@@ -123,6 +130,40 @@ resource "aws_secretsmanager_secret" "db_credentials" {
 }
 
 data "aws_caller_identity" "current" {}
+
+resource "aws_secretsmanager_secret" "dockerhub" {
+  name        = "dockerhub-credentials"
+  description = "Credentials for Docker Hub to bypass rate limits"
+}
+
+resource "aws_secretsmanager_secret_version" "dockerhub" {
+  secret_id = aws_secretsmanager_secret.dockerhub.id
+  secret_string = jsonencode({
+    username = var.dockerhub_username
+    password = var.dockerhub_password
+  })
+}
+
+# modules/iam/main.tf  
+resource "aws_iam_policy" "ecs_dockerhub_secrets" {
+  name        = "ECS-DockerHub-Secrets"
+  description = "Allow ECS to read Docker Hub credentials"
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Action   = ["secretsmanager:GetSecretValue"],
+      Effect   = "Allow",
+      Resource = [aws_secretsmanager_secret.dockerhub.arn]
+    }]
+  })
+}
+
+
+resource "aws_iam_role_policy_attachment" "ecs_dockerhub_secrets" {
+  role       = aws_iam_role.ecs_task_execution.name
+  policy_arn = aws_iam_policy.ecs_dockerhub_secrets.arn
+}
 
 #Define clusters aprés L CI/CD
 #Mtnsach Secrets Manager w Variables file. (done)
