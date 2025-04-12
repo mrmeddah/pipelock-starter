@@ -50,3 +50,8 @@ variable "create_s3_endpoint" {
   type        = bool
   default     = true 
 }
+
+variable "rds_subnet_cidr_blocks" {
+  description = "CIDR blocks of RDS subnets"
+  type        = list(string)
+}

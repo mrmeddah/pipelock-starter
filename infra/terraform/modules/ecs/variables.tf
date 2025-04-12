@@ -44,9 +44,9 @@ variable "alb_security_group_id" {
 }
 
 variable "metabase_image" {
-  description = "Metabase Docker image URI"
+  description = "Metabase ECR image URI"
   type        = string
-  default     = "metabase/metabase:latest"
+  default     = "YOUR_ACCOUNT.dkr.ecr.us-east-1.amazonaws.com/metabase:latest"
 }
 
 variable "aws_region" {
@@ -84,7 +84,9 @@ variable "security_groups" {
   type        = list(string)
 }
 
-variable "dockerhub_secret_arn" {
+/*variable "dockerhub_secret_arn" {
   description = "ARN of the Docker Hub credentials secret"
   type        = string
 }
+
+*/

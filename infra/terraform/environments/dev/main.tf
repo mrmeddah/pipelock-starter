@@ -1,8 +1,13 @@
+module "metabase_ecr" {
+  source = "../../modules/ecr"
+}
+
 # Core VPC with NAT Gateway (required)
 module "metabase_vpc" {
   source          = "../../modules/vpc"
   environment = var.environment
-  vpc_cidr        = "10.0.0.0/16"                   
+  vpc_cidr        = "10.0.0.0/16"
+  rds_subnet_cidr_blocks = module.metabase_rds.db_subnet_cidr_blocks                    
   public_subnet_cidrs = ["10.0.1.0/24", "10.0.2.0/24"]  
   private_subnet_cidrs = ["10.0.3.0/24", "10.0.4.0/24"]
   enable_nat_gateway = true                         
@@ -14,8 +19,6 @@ module "metabase_iam" {
   source            = "../../modules/iam"
   github_repo       = "mrmeddah/pipelock-starter"
   enable_s3_exports = false
-  dockerhub_username = var.dockerhub_username
-  dockerhub_password = var.dockerhub_password
 }
 
 
@@ -78,21 +81,6 @@ resource "aws_security_group" "ecs" {
   }
 }
 
-/* resource "aws_ecr_repository" "metabase" {
-  name                 = "metabase"
-  image_tag_mutability = "MUTABLE"
-
-  image_scanning_configuration {
-    scan_on_push = true
-  }
-
-  tags = {
-    Environment = "dev"
-  }
-}
-*/
-
-
 module "metabase_ecs" {
   source                      = "../../modules/ecs"
   environment                 = "dev"
@@ -107,8 +95,7 @@ security_groups    = [aws_security_group.ecs.id]
   alb_target_group_arn        = module.metabase_alb.target_group_arn
   alb_security_group_id       = module.metabase_alb.alb_security_group_id
   aws_region                  = "us-east-1"
-  metabase_image              = "pipelock/metabase:latest"
-  dockerhub_secret_arn        = module.metabase_iam.dockerhub_secret_arn 
+  metabase_image              = "${module.metabase_ecr.ecr_repository_url}:latest"
   desired_count               = 1  
   depends_on = [module.metabase_rds]                 
   capacity_provider_strategy = [                   
@@ -119,15 +106,7 @@ security_groups    = [aws_security_group.ecs.id]
   ]
 }
 
-# VPC Endpoints (Reduce NAT traffic costs)
-resource "aws_vpc_endpoint" "ecr" {
-  vpc_id              = module.metabase_vpc.vpc_id
-  service_name        = "com.amazonaws.us-east-1.ecr.dkr"
-  vpc_endpoint_type   = "Interface"               
-  subnet_ids          = module.metabase_vpc.private_subnet_ids
-  security_group_ids  = [aws_security_group.vpc_endpoints.id]
-  private_dns_enabled = true
-}
+
 
 resource "aws_security_group" "vpc_endpoints" {
   name        = "metabase-vpc-endpoints"
@@ -164,6 +143,8 @@ resource "aws_route53_record" "metabase" {
     module.metabase_alb
   ]
 }
+
+#Test instance
 
 # Validation (L3a9a katmchi)
 

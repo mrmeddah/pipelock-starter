@@ -12,7 +12,7 @@ resource "aws_vpc" "main" {
 resource "aws_subnet" "public" {
   count                   = 2
   vpc_id                  = aws_vpc.main.id
-  cidr_block              = "10.0.${count.index + 10}.0/24"                    # 10.0.10.0/24, 10.0.11.0/24
+  cidr_block              = var.public_subnet_cidrs[count.index]                   # 10.0.10.0/24, 10.0.11.0/24
   availability_zone       = element(["us-east-1a", "us-east-1b"], count.index) #Hena dert 2 ela wed High Availability
   map_public_ip_on_launch = true
   tags = {
@@ -24,7 +24,7 @@ resource "aws_subnet" "public" {
 resource "aws_subnet" "private" {
   count             = 2
   vpc_id            = aws_vpc.main.id
-  cidr_block        = "10.0.${count.index}.0/24" # 10.0.0.0/24, 10.0.1.0/24
+  cidr_block        = var.private_subnet_cidrs[count.index] # 10.0.0.0/24, 10.0.1.0/24
   availability_zone = element(["us-east-1a", "us-east-1b"], count.index)
   tags = {
     Name = "metabase-private-${count.index}"
@@ -80,6 +80,7 @@ resource "aws_route_table" "private" {
   }
 }
 
+
 # Route Table Associations
 resource "aws_route_table_association" "public" {
   count          = 2
@@ -100,6 +101,15 @@ resource "aws_flow_log" "vpc" {
   log_destination = aws_cloudwatch_log_group.vpc_flow_logs.arn
   traffic_type    = "ALL"
   vpc_id          = aws_vpc.main.id
+}
+
+resource "aws_vpc_endpoint" "cloudwatch_logs" {
+  vpc_id              = aws_vpc.main.id
+  service_name        = "com.amazonaws.${var.aws_region}.logs"
+  vpc_endpoint_type   = "Interface"
+  security_group_ids  = [aws_security_group.vpc_endpoints.id]
+  subnet_ids          = aws_subnet.private[*].id 
+  private_dns_enabled = true
 }
 
 resource "aws_cloudwatch_log_group" "vpc_flow_logs" {
@@ -193,11 +203,11 @@ ingress {
 
   # Allow HTTPS outbound to internet (for ECS tasks)
   egress {
-    rule_no    = 100
+    rule_no    = 110
     protocol   = "tcp"
-    from_port  = 443
-    to_port    = 443
-    cidr_block = "0.0.0.0/0"
+    from_port  = 5432
+    to_port    = 5432
+    cidr_block = var.rds_subnet_cidr_blocks[0]
     action     = "allow"
   }
 
@@ -233,7 +243,7 @@ resource "aws_security_group" "vpc_endpoints" {
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
-    cidr_blocks = [var.vpc_cidr]
+    cidr_blocks = [aws_vpc.main.cidr_block]
   }
 
   egress {
@@ -243,3 +253,22 @@ resource "aws_security_group" "vpc_endpoints" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
+
+resource "aws_vpc_endpoint" "ecr_api" {
+  vpc_id              = aws_vpc.main.id
+  service_name        = "com.amazonaws.${var.aws_region}.ecr.api"
+  vpc_endpoint_type   = "Interface"
+  security_group_ids  = [aws_security_group.vpc_endpoints.id]
+  subnet_ids          = aws_subnet.private[*].id
+  private_dns_enabled = true
+}
+
+resource "aws_vpc_endpoint" "ecr_dkr" {
+  vpc_id              = aws_vpc.main.id
+  service_name        = "com.amazonaws.${var.aws_region}.ecr.dkr"
+  vpc_endpoint_type   = "Interface"
+  security_group_ids  = [aws_security_group.vpc_endpoints.id]
+  subnet_ids          = aws_subnet.private[*].id
+  private_dns_enabled = true
+}
+

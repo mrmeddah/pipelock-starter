@@ -2,6 +2,10 @@ resource "aws_ecs_cluster" "metabase" {
   name = "metabase-${var.environment}"
 }
 
+data "aws_secretsmanager_secret_version" "db_credentials" {
+  secret_id = var.db_secret_arn
+}
+
 resource "aws_ecs_task_definition" "metabase" {
   family                   = "metabase"
   network_mode             = "awsvpc"
@@ -14,28 +18,17 @@ resource "aws_ecs_task_definition" "metabase" {
   container_definitions = jsonencode([{
   name  = "metabase"
   image = var.metabase_image
-  repositoryCredentials = {
-    credentialsParameter = var.dockerhub_secret_arn
-  }
   portMappings = [{
     containerPort = 3000
     hostPort      = 3000
   }]
   environment = [
-    { name = "MB_DB_TYPE", value = "postgres" },
-    { name = "MB_DB_HOST", value = var.db_host },
-    { name = "MB_DB_PORT", value = "5432" }
-  ]
-  secrets = [
-    {
-      name      = "MB_DB_USER",
-      valueFrom = "arn:aws:secretsmanager:us-east-1:361769579987:secret:metabase-db-credentials-dev:username::"
-    },
-    {
-      name      = "MB_DB_PASS",
-      valueFrom = "arn:aws:secretsmanager:us-east-1:361769579987:secret:metabase-db-credentials-dev:password::"
-    }
-  ]
+  { name = "MB_DB_TYPE",  value = "postgres" },
+  { name = "MB_DB_HOST",  value = split(":", var.db_host)[0] },
+  { name = "MB_DB_PORT",  value = "5432" },
+  { name = "MB_DB_USER",  value = jsondecode(data.aws_secretsmanager_secret_version.db_credentials.secret_string)["username"] },
+  { name = "MB_DB_PASS",  value = jsondecode(data.aws_secretsmanager_secret_version.db_credentials.secret_string)["password"] }
+]
   logConfiguration = {
     logDriver = "awslogs",
     options = {
@@ -54,6 +47,11 @@ resource "aws_ecs_service" "metabase" {
   task_definition = aws_ecs_task_definition.metabase.arn
   desired_count   = var.environment == "prod" ? 2 : 1
   launch_type     = "FARGATE"
+    load_balancer {
+    target_group_arn = module.metabase_alb.aws_lb_target_group.metabase.arn
+    container_name  = "metabase"
+    container_port  = 3000
+  }
 
   network_configuration {
     subnets          = var.subnet_ids
@@ -75,7 +73,8 @@ resource "aws_security_group" "ecs" {
     from_port       = 3000
     to_port         = 3000
     protocol        = "tcp"
-    security_groups = [var.alb_security_group_id]
+    security_groups = [module.metabase_alb.aws_security_group.alb.id]
+
   }
 
   egress {
