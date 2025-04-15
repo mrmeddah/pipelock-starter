@@ -21,20 +21,18 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution" {
 }
 
 # Policy for Secrets Manager (DB credentials)
+
 resource "aws_iam_policy" "ecs_secrets_access" {
   name        = "metabase-ecs-secrets-access"
   description = "Allow ECS to fetch DB credentials from Secrets Manager"
 
   policy = jsonencode({
     Version = "2012-10-17",
-    Statement = [
-      # For database secrets
-      {
-        Action   = ["secretsmanager:GetSecretValue"],
-        Effect   = "Allow",
-        Resource = ["arn:aws:secretsmanager:us-east-1:361769579987:secret:metabase-db-credentials-dev*"]
-      }
-    ]
+    Statement = [{
+      Action   = ["secretsmanager:GetSecretValue"],
+      Effect   = "Allow",
+      Resource = var.db_secret_arn
+    }]
   })
 }
 
@@ -165,6 +163,7 @@ resource "aws_iam_role_policy_attachment" "ecr_pull" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
 }
 
+
+
 #Define clusters aprés L CI/CD
 #Mtnsach Secrets Manager w Variables file. (done)
-

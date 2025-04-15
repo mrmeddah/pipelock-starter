@@ -26,9 +26,15 @@ variable "route53_zone_id" {
 variable "private_subnets_cidr_blocks" {
   description = "CIDR blocks of private subnets for ECS security group egress"
   type        = list(string)
-}
+} 
 
 variable "certificate_arn" {
   description = "ARN of existing ACM certificate"
   type        = string
 }
+
+
+/*variable "ecs_security_group_id" {
+  description = "Security Group ID of ECS tasks"
+  type        = string
+} */

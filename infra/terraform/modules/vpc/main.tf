@@ -191,47 +191,56 @@ resource "aws_network_acl" "private" {
   vpc_id     = aws_vpc.main.id
   subnet_ids = aws_subnet.private[*].id
 
-  # Allow all internal VPC traffic
-ingress {
-    rule_no    = 120
-    protocol   = "tcp"
-    from_port  = 1024
-    to_port    = 65535
-    cidr_block = "0.0.0.0/0"
-    action     = "allow"
-}
-
-  # Allow HTTPS outbound to internet (for ECS tasks)
   egress {
-    rule_no    = 110
+    rule_no    = 100
     protocol   = "tcp"
     from_port  = 5432
     to_port    = 5432
-    cidr_block = var.rds_subnet_cidr_blocks[0]
     action     = "allow"
+    cidr_block = "0.0.0.0/0"
+  }
+  ingress {
+    rule_no    = 100
+    protocol   = "tcp"
+    from_port  = 5432
+    to_port    = 5432
+    action     = "allow"
+    cidr_block = "0.0.0.0/0"
   }
 
-  tags = {
-    Name = "metabase-private-acl"
+  ingress {
+    protocol   = "tcp"
+    rule_no    = 200
+    action     = "allow"
+    cidr_block = "0.0.0.0/0"
+    from_port  = 1024
+    to_port    = 65535
+  }
+
+  egress {
+    protocol   = "tcp"
+    rule_no    = 200
+    action     = "allow"
+    cidr_block = "0.0.0.0/0"
+    from_port  = 1024
+    to_port    = 65535
   }
 }
 # Aussi khseni nzid Security Groups (done)
 #Endpoints d'l VPC
 
-resource "aws_vpc_endpoint" "s3" {
-  vpc_id            = aws_vpc.main.id
-  service_name      = "com.amazonaws.${var.aws_region}.s3"
-  vpc_endpoint_type = "Gateway"
-  route_table_ids = aws_route_table.private[*].id
-}
+
 
 resource "aws_vpc_endpoint" "secretsmanager" {
   vpc_id              = aws_vpc.main.id
-  service_name        = "com.amazonaws.${var.aws_region}.secretsmanager"
+  service_name        = "com.amazonaws.us-east-1.secretsmanager"
   vpc_endpoint_type   = "Interface"
   subnet_ids          = aws_subnet.private[*].id
   security_group_ids  = [aws_security_group.vpc_endpoints.id]
   private_dns_enabled = true
+  tags = {
+    Name = "secretsmanager-endpoint"
+  }
 }
 
 resource "aws_security_group" "vpc_endpoints" {
@@ -239,12 +248,12 @@ resource "aws_security_group" "vpc_endpoints" {
   description = "Security group for VPC endpoints"
   vpc_id      = aws_vpc.main.id
 
-  ingress {
+ /* ingress {
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
-    cidr_blocks = [aws_vpc.main.cidr_block]
-  }
+    security_groups = [var.ecs_security_group_id]
+  }*/
 
   egress {
     from_port   = 0
@@ -256,19 +265,38 @@ resource "aws_security_group" "vpc_endpoints" {
 
 resource "aws_vpc_endpoint" "ecr_api" {
   vpc_id              = aws_vpc.main.id
-  service_name        = "com.amazonaws.${var.aws_region}.ecr.api"
+  service_name        = "com.amazonaws.us-east-1.ecr.api"
   vpc_endpoint_type   = "Interface"
-  security_group_ids  = [aws_security_group.vpc_endpoints.id]
   subnet_ids          = aws_subnet.private[*].id
+  security_group_ids  = [aws_security_group.vpc_endpoints.id]
   private_dns_enabled = true
+  tags = {
+    Name = "ecr-api-endpoint"
+  }
+  lifecycle {
+    replace_triggered_by = [aws_vpc.main.id]
+  }
 }
 
 resource "aws_vpc_endpoint" "ecr_dkr" {
   vpc_id              = aws_vpc.main.id
-  service_name        = "com.amazonaws.${var.aws_region}.ecr.dkr"
+  service_name        = "com.amazonaws.us-east-1.ecr.dkr"
   vpc_endpoint_type   = "Interface"
-  security_group_ids  = [aws_security_group.vpc_endpoints.id]
   subnet_ids          = aws_subnet.private[*].id
+  security_group_ids  = [aws_security_group.vpc_endpoints.id]
   private_dns_enabled = true
+  tags = {
+    Name = "ecr-dkr-endpoint"
+  }
+  lifecycle {
+    replace_triggered_by = [aws_vpc.main.id]
+  }
+}
+
+resource "aws_vpc_endpoint" "s3" {
+  vpc_id            = aws_vpc.main.id
+  service_name      = "com.amazonaws.us-east-1.s3"
+  vpc_endpoint_type = "Gateway"
+  route_table_ids   = aws_route_table.private[*].id
 }
 

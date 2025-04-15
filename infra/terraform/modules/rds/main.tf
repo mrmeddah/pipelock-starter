@@ -29,32 +29,42 @@ resource "aws_db_subnet_group" "metabase" {
 
 resource "aws_db_parameter_group" "metabase" {
   name   = "metabase-postgres12"
-  family = "postgres12" 
+  family = "postgres12"
 
   parameter {
     name  = "rds.force_ssl"
-    value = "1"  
+    value = "1"
   }
 
   parameter {
     name  = "log_statement"
-    value = "all" 
+    value = "all"
+  }
+
+  parameter {
+    name  = "log_connections"
+    value = "1"
+  }
+
+  parameter {
+    name  = "log_disconnections"
+    value = "1"
   }
 }
-
 
 resource "aws_security_group" "rds" {
   name        = "metabase-rds-${var.environment}"
   description = "Allow inbound from ECS only"
   vpc_id      = var.vpc_id
 
-  ingress {
+/*  ingress {
     from_port       = 5432
     to_port         = 5432
     protocol        = "tcp"
     security_groups = [var.ecs_security_group_id]
-  }
+  }*/
 }
+
 
 resource "aws_secretsmanager_secret" "db_credentials" {
   name = "metabase-db-credentials-${var.environment}"

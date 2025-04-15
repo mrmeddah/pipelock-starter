@@ -13,9 +13,14 @@ variable "subnet_ids" {
   type        = list(string)
 }
 
-variable "ecs_security_group_id" {
+/*variable "ecs_security_group_id" {
   description = "Security group ID of ECS tasks"
   type        = string
+}*/
+
+variable "private_subnets_cidr_blocks" {
+  description = "CIDR blocks of private subnets for RDS access"
+  type        = list(string)
 }
 
 variable "instance_class" {

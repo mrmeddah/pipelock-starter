@@ -55,3 +55,9 @@ variable "rds_subnet_cidr_blocks" {
   description = "CIDR blocks of RDS subnets"
   type        = list(string)
 }
+
+/*variable "ecs_security_group_id" {
+  description = "Security group ID of ECS tasks"
+  type        = string
+  default     = ""
+}*/

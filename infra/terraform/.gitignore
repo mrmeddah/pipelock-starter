@@ -25,3 +25,5 @@
 !environments/staging/terraform.tfvars.example
 !environments/prod/terraform.tfvars.example
 !modules/**/example.auto.tfvars
+
+all_configs.txt

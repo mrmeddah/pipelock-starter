@@ -15,6 +15,6 @@ output "alb_zone_id" {
   value = aws_lb.metabase.zone_id
 }
 
-output "certificate_arn" {
+/*output "certificate_arn" {
   value = aws_acm_certificate.metabase.arn
-}
+}*/

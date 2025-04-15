@@ -31,3 +31,8 @@ output "private_subnets_cidr_blocks" {
   description = "CIDR blocks of private subnets"
   value       = aws_subnet.private[*].cidr_block
 }
+
+output "vpc_endpoints_security_group_id" {
+  value       = aws_security_group.vpc_endpoints.id
+  description = "Security group ID for VPC endpoints"
+}

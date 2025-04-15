@@ -17,10 +17,11 @@ resource "aws_lb_target_group" "metabase" {
 
   health_check {
     path                = "/api/health"
-    interval            = 30
-    timeout             = 5
-    healthy_threshold   = 2
-    unhealthy_threshold = 2
+  healthy_threshold   = 2
+  unhealthy_threshold = 2
+  timeout             = 5
+  interval            = 30
+  matcher             = "200-399"     
   }
 }
 
@@ -77,11 +78,11 @@ resource "aws_security_group" "alb" {
     from_port   = 3000
     to_port     = 3000
     protocol    = "tcp"
-    cidr_blocks = var.private_subnets_cidr_blocks
+    cidr_blocks     = var.private_subnets_cidr_blocks
     }
 }
 
-resource "aws_acm_certificate" "metabase" {
+/* resource "aws_acm_certificate" "metabase" {
   domain_name       = var.domain_name
   validation_method = "DNS"
 
@@ -111,4 +112,4 @@ resource "aws_route53_record" "cert_validation" {
 resource "aws_acm_certificate_validation" "metabase" {
   certificate_arn         = aws_acm_certificate.metabase.arn
   validation_record_fqdns = [for record in aws_route53_record.cert_validation : record.fqdn]
-}
+} */

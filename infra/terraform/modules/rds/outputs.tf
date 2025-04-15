@@ -8,11 +8,11 @@ output "db_secret_arn" {
   value       = aws_secretsmanager_secret.db_credentials.arn
 }
 
- output "db_subnet_cidr_blocks" {
-  value = [for s in aws_db_subnet_group.metabase.subnet_ids : data.aws_subnet.selected[s].cidr_block]
+output "db_subnet_cidr_blocks" {
+  value = var.private_subnets_cidr_blocks
 }
 
-data "aws_subnet" "selected" {
-  for_each = toset(aws_db_subnet_group.metabase.subnet_ids)
-  id       = each.key
+
+output "rds_security_group_id" {
+  value = aws_security_group.rds.id
 }

@@ -22,3 +22,13 @@ variable "dockerhub_password" {
   sensitive   = true
 } 
 */
+
+variable "db_secret_arn" {
+  description = "ARN of RDS DB credentials secret"
+  type        = string
+}
+
+variable "environment" {
+  description = "Deployment environment"
+  type        = string
+}

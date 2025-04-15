@@ -46,7 +46,7 @@ variable "alb_security_group_id" {
 variable "metabase_image" {
   description = "Metabase ECR image URI"
   type        = string
-  default     = "YOUR_ACCOUNT.dkr.ecr.us-east-1.amazonaws.com/metabase:latest"
+  default     = "361769579987.dkr.ecr.us-east-1.amazonaws.com/metabase"
 }
 
 variable "aws_region" {
@@ -62,21 +62,18 @@ variable "desired_count" {
 }
 
 variable "capacity_provider_strategy" {
-  description = "ECS capacity provider strategy (Spot/On-Demand)"
+  description = "Capacity provider strategy for ECS service"
   type = list(object({
     capacity_provider = string
     weight           = number
   }))
-  default = [{
-    capacity_provider = "FARGATE_SPOT",
-    weight           = 1
-  }]
+  default = []
 }
 
-variable "rds_endpoint" {  
+/*variable "rds_endpoint" {  
   description = "RDS endpoint for Metabase connection"  
   type        = string  
-}  
+}*/  
 
 
 variable "security_groups" {
